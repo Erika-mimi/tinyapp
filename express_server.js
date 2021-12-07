@@ -17,8 +17,6 @@ app.use(bodyParser.urlencoded({extended: true}));
 app.get("/", (req, res) => {
   res.send("Hello!");
 });
-
-
 app.get("/urls.json", (req, res) => {
   res.json(urlDatabase);
 });
