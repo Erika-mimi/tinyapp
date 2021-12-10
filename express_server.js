@@ -83,13 +83,14 @@ app.post("/urls/:shortURL", (req, res) => {
   res.redirect("/urls");
 })
 app.post('/login', (req, res) => {
-  let username = req.body.username;
-  res.cookie('username', username);
+  const email = req.body.email;
+  const user = findUserByEmail(email, users);
+  res.cookie('user_id', user.id);
   res.redirect('/urls');
 });
 
 app.post('/logout', (req, res) => {
-  res.clearCookie('username');
+  res.clearCookie('user_id');
   res.redirect('/urls');
 });
 app.get('/register', (req, res) => {
