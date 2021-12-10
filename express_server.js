@@ -127,3 +127,9 @@ function findUserByEmail(email, userDB) {
   }
   return false
 }
+app.get("/login", (req, res) => {
+  const templateVars = {
+    user: users[req.cookies["user_id"]],
+  };
+  res.render("urls_login", templateVars);
+});
