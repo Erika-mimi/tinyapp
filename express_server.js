@@ -39,15 +39,15 @@ app.get("/hello", (req, res) => {
   res.send("<html><body>Hello <b>World</b></body></html>\n");
 });
 app.get("/urls", (req, res) => {
-  const templateVars = { urls: urlDatabase, username: req.cookies.username };
+  const templateVars = { user: users[req.cookies["user_id"]], urls: urlDatabase};
   res.render("urls_index", templateVars);
 });
 app.get("/urls/new", (req, res) => {
-  const templateVars = { username: req.cookies.username };
-  res.render("urls_show", templateVars);
+  const templateVars = { user: users[req.cookies["user_id"]] };
+  res.render("urls_new", templateVars);
 });
 app.get("/urls/:shortURL", (req, res) => {
-  const templateVars = { shortURL: req.params.shortURL, longURL: urlDatabase[req.params.shortURL], username: req.cookies.username};
+  const templateVars = { usershortURL: req.params.shortURL, longURL: urlDatabase[req.params.shortURL], user: users[req.cookies["user_id"]] };
   res.render("urls_show", templateVars);
 });
 app.post("/urls", (req, res) => {
@@ -55,7 +55,7 @@ app.post("/urls", (req, res) => {
   res.redirect("/urls");         // Respond with 'Ok' (we will replace this)
 });
 app.get("/u/:shortURL", (req, res) => {
-
+  user: users[req.cookies["user_id"]]
   const shortURL = req.params.shortURL
   console.log(shortURL)
   const longURL = urlDatabase[shortURL]
@@ -93,7 +93,7 @@ app.post('/logout', (req, res) => {
   res.redirect('/urls');
 });
 app.get('/register', (req, res) => {
-  const templateVars = { username: req.cookies.user_id };
+  const templateVars = { user: users[req.cookies["user_id"]], urls: urlDatabase};
   res.render('urls_register', templateVars);
 });
 
@@ -101,11 +101,11 @@ app.post('/register', (req, res) => {
   let email = req.body.email;
   let password = req.body.password;
 //Create a Registration Handler
-  if(!email || !password) return res.status(403).send('Wrong credentials')
+  if(!email || !password) return res.status(400).send('Wrong credentials')
 
   const userObject = findUserByEmail(email, users)
 
-  if(userObject) return res.status(403).send('Email is taken')
+  if(userObject) return res.status(400).send('Email is taken')
 
   const randomUserID = generateRandomString()
   console.log('random user ID', randomUserID)
