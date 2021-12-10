@@ -84,7 +84,15 @@ app.post("/urls/:shortURL", (req, res) => {
 })
 app.post('/login', (req, res) => {
   const email = req.body.email;
-  const user = findUserByEmail(email, users);
+  const password = req.body.password;
+  const userOrFalse = findUserByEmail(email, users);
+  if (!userOrFalse) {
+    return res.status(403).send("Your email cannot be found");
+  } 
+  const user = userOrFalse;
+  if (password !== user.password) {
+    return res.status(403).send("Your password doesn't match");
+  }
   res.cookie('user_id', user.id);
   res.redirect('/urls');
 });
