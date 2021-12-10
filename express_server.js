@@ -7,11 +7,32 @@ app.set("view engine", "ejs");
 function generateRandomString() {
   return Math.random().toString(36).slice(7);
 }
+let urlDatabase = {
+  b6UTxQ: {
+      longURL: "https://www.tsn.ca",
+      userID: "aJ48lW"
+  },
+  i3BoGr: {
+      longURL: "https://www.google.ca",
+      userID: "aJ48lW"
+  }
 
-const urlDatabase = {
-  "b2xVn2": "http://www.lighthouselabs.ca",
-  "9sm5xK": "http://www.google.com"
 };
+
+// const urlForUsers = (id, dataBase) => {
+//   let userUrls = {};
+//   for (let shortUrls in dataBase) {
+//     if (dataBase[shortUrls].user_id === id) {
+//       userUrls[shortUrls] = dataBase[shortUrls]; 
+//     }
+//   }
+//   return userUrls;
+// }
+
+// const urlDatabase = {
+//   "b2xVn2": "http://www.lighthouselabs.ca",
+//   "9sm5xK": "http://www.google.com"
+// };
 const users = { 
   "userRandomID": {
     id: "userRandomID", 
@@ -23,6 +44,17 @@ const users = {
     email: "user2@example.com", 
     password: "dishwasher-funk"
   }
+}
+const urlForUsers = (id, dataBase) => {
+  let userUrls = {};
+  for (let shortUrls in dataBase) {
+    if (dataBase[shortUrls].userID === id) {
+      userUrls[shortUrls] = dataBase[shortUrls].longURL; 
+      console.log({ id, dataBase })
+    }
+    console.log({ id, dataBase })
+  }
+  return userUrls;
 }
 
 const bodyParser = require("body-parser");
@@ -39,18 +71,43 @@ app.get("/hello", (req, res) => {
   res.send("<html><body>Hello <b>World</b></body></html>\n");
 });
 app.get("/urls", (req, res) => {
-  const templateVars = { user: users[req.cookies["user_id"]], urls: urlDatabase};
+  let user_id = req.cookies.user_id;
+//  userUrls = urlForUsers(user_id, urlDatabase)
+//   const templateVars = { urls: userUrls, user: users[user_id] };
+//   console.log(userUrls);
+  if (!user_id) {
+    res.redirect('/login');
+  }
+  const userUrls = urlForUsers(user_id, urlDatabase)
+  console.log(userUrls, "abcd");
+  let templateVars = { urls: userUrls, user: users[user_id] };
+  console.log(templateVars);
   res.render("urls_index", templateVars);
 });
 app.get("/urls/new", (req, res) => {
-  const templateVars = { user: users[req.cookies["user_id"]] };
-  res.render("urls_new", templateVars);
+  let user_id = req.cookies.user_id;
+  if (user_id) {
+    const templateVars = { user: users[user_id] };
+    res.render('urls_new', templateVars);
+  } else {
+    res.redirect('/login');
+  }
 });
 app.get("/urls/:shortURL", (req, res) => {
-  const templateVars = { shortURL: req.params.shortURL, longURL: urlDatabase[req.params.shortURL], user: users[req.cookies["user_id"]] };
+  let user_id = req.cookies.user_id;
+  userUrls = urlForUsers(user_id, urlDatabase)
+   const templateVars = { urls: userUrls, user: users[user_id] };
   res.render("urls_show", templateVars);
 });
 app.post("/urls", (req, res) => {
+  const user_id = req.cookies.user_id;
+  if (!user_id) {
+    return res.send("You need to log in or register.");
+  } 
+  const {longURL} = req.body
+  const shortUrl = generateRandomString(); 
+  urlDatabase = {...urlDatabase, [shortUrl]: {longURL, userID: user_id} }//copying urlDatabase
+
   console.log(req.body);  // Log the POST request body to the console
   res.redirect("/urls");         // Respond with 'Ok' (we will replace this)
 });
