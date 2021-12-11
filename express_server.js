@@ -76,7 +76,7 @@ app.get("/urls", (req, res) => {
 //   const templateVars = { urls: userUrls, user: users[user_id] };
 //   console.log(userUrls);
   if (!user_id) {
-    res.redirect('/login');
+    return res.redirect('/login');
   }
   const userUrls = urlForUsers(user_id, urlDatabase)
   console.log(userUrls, "abcd");
@@ -94,11 +94,25 @@ app.get("/urls/new", (req, res) => {
   }
 });
 app.get("/urls/:shortURL", (req, res) => {
-  let user_id = req.cookies.user_id;
-  userUrls = urlForUsers(user_id, urlDatabase)
-   const templateVars = { urls: userUrls, user: users[user_id] };
-  res.render("urls_show", templateVars);
+  const shortURL = req.params.shortURL
+  const user_id = req.cookies.user_id;
+  if (!user_id) {
+    return res.status(403).send("Please login");
+  }
+const userUrls = urlForUsers(user_id, urlDatabase)
+const url = userUrls[shortURL]
+if (!url) {
+  return res.status(404).send("Url cannot be found");
+}
+const templateVars = { 
+  urls: userUrls, 
+  user: users[user_id],
+  longURL: url.longURL,
+  shortURL: shortURL,
+ };
+res.render("urls_show", templateVars);
 });
+
 app.post("/urls", (req, res) => {
   const user_id = req.cookies.user_id;
   if (!user_id) {
@@ -112,12 +126,17 @@ app.post("/urls", (req, res) => {
   res.redirect("/urls");         // Respond with 'Ok' (we will replace this)
 });
 app.get("/u/:shortURL", (req, res) => {
-  user: users[req.cookies["user_id"]]
+  // user: users[req.cookies["user_id"]]
   const shortURL = req.params.shortURL
-  console.log(shortURL)
-  const longURL = urlDatabase[shortURL]
-  res.redirect(longURL);
+  // console.log(shortURL)
+  // const longURL = urlDatabase[shortURL]
+  // res.redirect(longURL);
   // res.end("Hello shorturl")
+  const url = urlDatabase[shortURL]
+  if (!url) {
+    return res.status(403).send("URL doesn't exist");
+  }
+  res.redirect(url.longURL);
 });
 
 app.listen(PORT, () => {
@@ -125,7 +144,16 @@ app.listen(PORT, () => {
 });
 
 app.post("/urls/:shortURL/delete", (req, res) => {
+  const user_id = req.cookies.user_id;
   const urlToDelete = req.params.shortURL
+  if (!user_id) {
+    return res.status(403).send("Please login");
+  }
+  const userUrls = urlForUsers(user_id, urlDatabase)
+  const url = userUrls[urlToDelete]
+  if (!url) {
+    return res.status(404).send("Url cannot be found");
+  }
   delete urlDatabase[urlToDelete]
   res.redirect("/urls");
 })
