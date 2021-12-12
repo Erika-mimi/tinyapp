@@ -1,9 +1,17 @@
 const express = require("express");
 const app = express();
 const PORT = 8080; // default port 8080
-const cookieParser = require('cookie-parser');
+const cookieSession = require('cookie-session');
 app.set("view engine", "ejs");
 const bcrypt = require('bcryptjs');
+
+const bodyParser = require("body-parser");
+app.use(bodyParser.urlencoded({extended: true}));
+app.use(cookieSession({
+  name: 'session',
+  secret: "sugar",
+}))
+
 
 function generateRandomString() {
   return Math.random().toString(36).slice(7);
@@ -58,21 +66,26 @@ const urlForUsers = (id, dataBase) => {
   return userUrls;
 }
 
-const bodyParser = require("body-parser");
-app.use(bodyParser.urlencoded({extended: true}));
-app.use(cookieParser());
 
 app.get("/", (req, res) => {
   res.redirect('/urls');
 });
+
+
 app.get("/urls.json", (req, res) => {
   res.json(urlDatabase);
 });
+
+
 app.get("/hello", (req, res) => {
   res.send("<html><body>Hello <b>World</b></body></html>\n");
 });
+
+
 app.get("/urls", (req, res) => {
-  let user_id = req.cookies.user_id;
+  console.log('req.session', req.session);
+  let user_id = req.session.user_id;
+
 //  userUrls = urlForUsers(user_id, urlDatabase)
 //   const templateVars = { urls: userUrls, user: users[user_id] };
 //   console.log(userUrls);
@@ -85,8 +98,10 @@ app.get("/urls", (req, res) => {
   console.log(templateVars);
   res.render("urls_index", templateVars);
 });
+
+
 app.get("/urls/new", (req, res) => {
-  let user_id = req.cookies.user_id;
+  let user_id = req.session.user_id;
   if (user_id) {
     const templateVars = { user: users[user_id] };
     res.render('urls_new', templateVars);
@@ -94,9 +109,11 @@ app.get("/urls/new", (req, res) => {
     res.redirect('/login');
   }
 });
+
+
 app.get("/urls/:shortURL", (req, res) => {
   const shortURL = req.params.shortURL
-  const user_id = req.cookies.user_id;
+  const user_id = req.session.user_id;
   if (!user_id) {
     return res.status(403).send("Please login");
   }
@@ -114,8 +131,9 @@ const templateVars = {
 res.render("urls_show", templateVars);
 });
 
+
 app.post("/urls", (req, res) => {
-  const user_id = req.cookies.user_id;
+  const user_id = req.session.user_id;
   if (!user_id) {
     return res.send("You need to log in or register.");
   } 
@@ -126,6 +144,8 @@ app.post("/urls", (req, res) => {
   console.log(req.body);  // Log the POST request body to the console
   res.redirect("/urls");         // Respond with 'Ok' (we will replace this)
 });
+
+
 app.get("/u/:shortURL", (req, res) => {
   // user: users[req.cookies["user_id"]]
   const shortURL = req.params.shortURL
@@ -140,12 +160,14 @@ app.get("/u/:shortURL", (req, res) => {
   res.redirect(url.longURL);
 });
 
+
 app.listen(PORT, () => {
   console.log(`Example app listening on port ${PORT}!`);
 });
 
+
 app.post("/urls/:shortURL/delete", (req, res) => {
-  const user_id = req.cookies.user_id;
+  const user_id = req.session.user_id;
   const urlToDelete = req.params.shortURL
   if (!user_id) {
     return res.status(403).send("Please login");
@@ -168,12 +190,14 @@ app.post("/urls/:shortURL", (req, res) => {
   console.log("updating this short url", req.params.shortURL)
   res.redirect("/urls");
 })
+
+
 app.post('/login', (req, res) => {
   const email = req.body.email;
-  const password = req.body.password;
+  const inputtedPassword = req.body.password;
 
   const storedPassword = bcrypt.hashSync("123", 10);
-  console.log('storedPassword', storedPassword)
+  console.log('storedPassword', storedPassword);
 
   // bcrypt.compareSync("123", hashedPassword); // returns true
   // bcrypt.compareSync("pink-donkey-minotaur", hashedPassword); // returns false
@@ -188,14 +212,14 @@ app.post('/login', (req, res) => {
   const user = userOrFalse;
 
   // compare password
-  const isPasswordMatched = bcrypt.compareSync("123", storedPassword);
+  const isPasswordMatched = bcrypt.compareSync(inputtedPassword, storedPassword);
   console.log('isPasswordMatched', isPasswordMatched);
 
-  if (password !== user.password) {
+  if (!isPasswordMatched) {
     return res.status(403).send("Your password doesn't match");
   }
   
-  res.cookie('user_id', user.id);
+  req.session['user_id'] = user.id;
   res.redirect('/urls');
 });
 
@@ -204,7 +228,7 @@ app.post('/logout', (req, res) => {
   res.redirect('/urls');
 });
 app.get('/register', (req, res) => {
-  const templateVars = { user: users[req.cookies["user_id"]], urls: urlDatabase};
+  const templateVars = { user: users[req.session["user_id"]], urls: urlDatabase};
   res.render('urls_register', templateVars);
 });
 
@@ -229,7 +253,7 @@ const hashedPassword = bcrypt.hashSync(password, 10);
   }
 
   users[randomUserID] = newUser
-  res.cookie('user_id', randomUserID)
+  req.session['user_id'] = randomUserID;
   res.redirect('/urls')
 });
 
@@ -242,7 +266,7 @@ function findUserByEmail(email, userDB) {
 }
 app.get("/login", (req, res) => {
   const templateVars = {
-    user: users[req.cookies["user_id"]],
+    user: users[req.session["user_id"]],
   };
   res.render("urls_login", templateVars);
 });
