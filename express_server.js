@@ -3,6 +3,7 @@ const app = express();
 const PORT = 8080; // default port 8080
 const cookieParser = require('cookie-parser');
 app.set("view engine", "ejs");
+const bcrypt = require('bcryptjs');
 
 function generateRandomString() {
   return Math.random().toString(36).slice(7);
@@ -37,7 +38,7 @@ const users = {
   "userRandomID": {
     id: "userRandomID", 
     email: "user@example.com", 
-    password: "purple-monkey-dinosaur"
+    password: "123"
   },
  "user2RandomID": {
     id: "user2RandomID", 
@@ -170,14 +171,30 @@ app.post("/urls/:shortURL", (req, res) => {
 app.post('/login', (req, res) => {
   const email = req.body.email;
   const password = req.body.password;
+
+  const storedPassword = bcrypt.hashSync("123", 10);
+  console.log('storedPassword', storedPassword)
+
+  // bcrypt.compareSync("123", hashedPassword); // returns true
+  // bcrypt.compareSync("pink-donkey-minotaur", hashedPassword); // returns false
+
+  // try to find a user by email address
   const userOrFalse = findUserByEmail(email, users);
   if (!userOrFalse) {
     return res.status(403).send("Your email cannot be found");
   } 
+
+  // if user found...
   const user = userOrFalse;
+
+  // compare password
+  const isPasswordMatched = bcrypt.compareSync("123", storedPassword);
+  console.log('isPasswordMatched', isPasswordMatched);
+
   if (password !== user.password) {
     return res.status(403).send("Your password doesn't match");
   }
+  
   res.cookie('user_id', user.id);
   res.redirect('/urls');
 });
@@ -192,8 +209,10 @@ app.get('/register', (req, res) => {
 });
 
 app.post('/register', (req, res) => {
+const password = "123"; // found in the req.params object
+const hashedPassword = bcrypt.hashSync(password, 10);
   let email = req.body.email;
-  let password = req.body.password;
+  // let password = req.body.password;
 //Create a Registration Handler
   if(!email || !password) return res.status(400).send('Wrong credentials')
 
